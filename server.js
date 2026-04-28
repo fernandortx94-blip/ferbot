@@ -32,7 +32,7 @@ function guardarMemoria(historial) {
   } catch (e) { console.log('Error guardando memoria:', e.message); }
 }
 
-const historial = cargarMemoria();
+const historial = [];
 console.log('Memoria cargada: ' + historial.length + ' mensajes.');
 
 // ============================================================
