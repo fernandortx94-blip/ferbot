@@ -576,7 +576,7 @@ async function mEnviar(voz) {
   c.innerHTML += '<div class="m-bot" id="mpens">FERBOT: pensando...</div>';
   c.scrollTop = c.scrollHeight;
   try {
-    var r = await fetch('/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:m})});
+    var r = await fetch('https://ferbot-8ys2.onrender.com/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:m})});
     var d = await r.json();
     var p = document.getElementById('mpens');
     p.textContent = 'FERBOT: '+d.reply;
@@ -597,7 +597,7 @@ async function mEnviarConVoz(m) {
   c.scrollTop = c.scrollHeight;
   goTo(0);
   try {
-    var r = await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:m})});
+    var r = await fetch('https://ferbot-8ys2.onrender.com/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:m})});
     var d = await r.json();
     var p = document.getElementById('mpens');
     p.textContent = 'FERBOT: '+d.reply;
@@ -831,22 +831,18 @@ function mTogglePause(){mHPaused=!mHPaused;document.getElementById('m-btnPause')
 // DISPOSITIVOS
 // ============================================================
 function mRenderDevices(devices){var list=document.getElementById('m-dev-list');if(!devices||devices.length===0){list.innerHTML='<div style="font-size:0.75em;color:#666;">Sin dispositivos.</div>';return;}list.innerHTML=devices.map(function(d){return'<div class="m-dev-item"><div class="m-dev-id">'+d.id+'</div><div class="m-dev-status">'+d.status+'</div>'+(d.status==='conectado'?'<button class="m-btn m-btn-dark" onclick="mMirror(\''+d.id+'\')">▶ Ver pantalla</button>':'<div style="font-size:0.65em;color:#ff4444;">Aceptá permiso en el celu</div>')+'</div>';}).join('');}
-async function mEscanear(){document.getElementById('m-dev-msg').textContent='Escaneando...';var r=await fetch('/devices');var d=await r.json();mRenderDevices(d.devices);document.getElementById('m-dev-msg').textContent=d.devices.length+' dispositivo(s)';}
-async function mConectarIP(){var ip=document.getElementById('m-inputIP').value.trim();if(!ip)return;document.getElementById('m-dev-msg').textContent='Conectando...';var r=await fetch('/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip:ip})});var d=await r.json();document.getElementById('m-dev-msg').textContent=d.msg;if(d.ok)mEscanear();}
-async function mMirror(id){var r=await fetch('/mirror',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})});var d=await r.json();document.getElementById('m-dev-msg').textContent=d.msg;}
+async function mEscanear(){document.getElementById('m-dev-msg').textContent='Escaneando...';var r=await fetch('https://ferbot-8ys2.onrender.com/devices');var d=await r.json();mRenderDevices(d.devices);document.getElementById('m-dev-msg').textContent=d.devices.length+' dispositivo(s)';}
+async function mConectarIP(){var ip=document.getElementById('m-inputIP').value.trim();if(!ip)return;document.getElementById('m-dev-msg').textContent='Conectando...';var r=await fetch('https://ferbot-8ys2.onrender.com/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip:ip})});var d=await r.json();document.getElementById('m-dev-msg').textContent=d.msg;if(d.ok)mEscanear();}
+async function mMirror(id){var r=await fetch('https://ferbot-8ys2.onrender.com/mirror',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})});var d=await r.json();document.getElementById('m-dev-msg').textContent=d.msg;}
 
 // ============================================================
 // TECLADO REMOTO
 // ============================================================
-async function kKey(tecla){await fetch('/tecla',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tecla:tecla})});}
-async function kSendText(){var t=document.getElementById('kbd-text').value;if(!t)return;await fetch('/tecla',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:t})});document.getElementById('kbd-text').value='';}
+async function kKey(tecla){await fetch('https://ferbot-8ys2.onrender.com/tecla',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tecla:tecla})});}
+async function kSendText(){var t=document.getElementById('kbd-text').value;if(!t)return;await fetch('https://ferbot-8ys2.onrender.com/tecla',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:t})});document.getElementById('kbd-text').value='';}
 
 // Init
 mEscanear();
-<script>
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js');
-}
 </script>
 </body>
 </html>
