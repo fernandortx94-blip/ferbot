@@ -50,6 +50,13 @@ async function buscarEnInternet(consulta) {
 }
 
 // ============================================================
+// PÁGINA PRINCIPAL
+// ============================================================
+app.get('/', function(req, res) {
+  res.sendFile(path.join(__dirname, 'mobile.html'));
+});
+
+// ============================================================
 // DISPOSITIVOS
 // ============================================================
 app.get('/devices', function(req, res) {
