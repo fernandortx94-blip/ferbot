@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>FERBOT Mobile</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --cyan:#00c8ff;--green:#00ff99;--red:#ff4444;
+  --bg:#000810;--panel:rgba(0,12,28,0.97);--border:rgba(0,200,255,0.3);
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:'Courier New',monospace;color:var(--cyan);}
+
+/* ===== FONDO ANIMADO ===== */
+#bg-rings{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;opacity:0.18;}
+.br{position:absolute;border-radius:50%;border:1px solid var(--cyan);}
+.br1{width:600px;height:600px;animation:spin 30s linear infinite;}
+.br2{width:450px;height:450px;border-color:var(--green);animation:spinr 20s linear infinite;}
+.br3{width:300px;height:300px;animation:spin 12s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spinr{to{transform:rotate(-360deg)}}
+
+/* ===== HEADER ===== */
+#header{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(0,4,16,0.95);
+  border-bottom:1px solid var(--border);
+  padding:10px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  backdrop-filter:blur(10px);
+}
+#header-title{font-size:1.2em;letter-spacing:6px;color:var(--cyan);text-shadow:0 0 15px var(--cyan);}
+#page-indicator{display:flex;gap:6px;align-items:center;}
+.dot{width:6px;height:6px;border-radius:50%;background:rgba(0,200,255,0.2);border:1px solid var(--border);transition:all 0.3s;}
+.dot.active{background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+
+/* ===== TABS NAV ===== */
+#tab-nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:rgba(0,4,16,0.97);
+  border-top:1px solid var(--border);
+  display:flex;
+  backdrop-filter:blur(10px);
+}
+.tab-nav-btn{
+  flex:1;padding:10px 4px 8px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  font-size:0.45em;letter-spacing:1px;color:rgba(0,200,255,0.4);
+  cursor:pointer;transition:all 0.2s;border:none;background:none;
+}
+.tab-nav-btn .icon{font-size:2.2em;line-height:1;}
+.tab-nav-btn.active{color:var(--cyan);text-shadow:0 0 8px var(--cyan);}
+.tab-nav-btn.active .icon{filter:drop-shadow(0 0 6px var(--cyan));}
+
+/* ===== SWIPE CONTAINER ===== */
+#swipe-wrap{
+  position:fixed;
+  top:56px;bottom:64px;left:0;right:0;
+  overflow:hidden;z-index:1;
+}
+#pages{
+  display:flex;
+  width:700%;/* 7 páginas */
+  height:100%;
+  transition:transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.page{
+  width:calc(100vw);
+  height:100%;
+  overflow-y:auto;
+  padding:14px;
+  flex-shrink:0;
+}
+
+/* ===== CARDS ===== */
+.card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:14px;
+  margin-bottom:12px;
+  position:relative;overflow:hidden;
+}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);}
+.card-title{font-size:0.75em;letter-spacing:3px;color:var(--cyan);text-shadow:0 0 8px var(--cyan);margin-bottom:10px;text-align:center;}
+
+/* ===== INPUTS ===== */
+.m-input{
+  width:100%;padding:10px 12px;
+  background:rgba(0,5,15,0.9);
+  border:1px solid var(--border);border-radius:8px;
+  color:var(--cyan);font-size:0.85em;font-family:inherit;
+  outline:none;
+}
+.m-input:focus{border-color:var(--cyan);box-shadow:0 0 12px rgba(0,200,255,0.2);}
+.m-input::placeholder{color:rgba(0,200,255,0.3);}
+.m-select{
+  width:100%;padding:9px 12px;
+  background:rgba(0,5,15,0.9);
+  border:1px solid var(--border);border-radius:8px;
+  color:var(--cyan);font-size:0.82em;font-family:inherit;outline:none;
+  appearance:none;
+}
+.m-btn{
+  width:100%;padding:11px;
+  border:none;border-radius:8px;
+  font-weight:bold;cursor:pointer;
+  font-size:0.82em;letter-spacing:2px;
+  transition:all 0.2s;font-family:inherit;
+}
+.m-btn-cyan{background:var(--cyan);color:#000;}
+.m-btn-cyan:active{background:#00a8d4;}
+.m-btn-red{background:rgba(80,0,0,0.8);color:var(--red);border:1px solid var(--red);}
+.m-btn-dark{background:rgba(0,20,40,0.8);color:var(--cyan);border:1px solid var(--border);}
+.gap6{display:flex;gap:6px;}
+.gap6 .m-btn{flex:1;}
+
+/* ===== CHAT ===== */
+#m-chat-box{
+  height:calc(100vh - 280px);
+  background:rgba(0,5,15,0.8);
+  border:1px solid var(--border);border-radius:10px;
+  overflow-y:auto;padding:10px;margin-bottom:8px;
+  scrollbar-width:thin;scrollbar-color:var(--cyan) transparent;
+}
+.m-user{color:#fff;font-size:0.8em;margin:5px 0;padding:6px 10px;background:rgba(0,30,60,0.5);border-radius:8px;border-left:2px solid var(--cyan);}
+.m-bot{color:var(--green);font-size:0.8em;margin:5px 0;padding:6px 10px;background:rgba(0,30,15,0.5);border-radius:8px;border-left:2px solid var(--green);}
+
+/* ===== MICRO ===== */
+#m-micro-btn{
+  width:100px;height:100px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,40,70,0.95),rgba(0,5,20,0.98));
+  border:2px solid var(--cyan);color:var(--cyan);
+  font-size:2.5em;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 12px;transition:all 0.25s;
+  box-shadow:0 0 20px rgba(0,200,255,0.2);
+}
+#m-micro-btn.on{border-color:var(--red);color:var(--red);background:radial-gradient(circle,rgba(50,0,0,0.95),rgba(15,0,0,0.98));box-shadow:0 0 30px rgba(255,60,60,0.5);animation:mPulse 1.2s infinite;}
+@keyframes mPulse{0%,100%{box-shadow:0 0 20px rgba(255,60,60,0.4)}50%{box-shadow:0 0 45px rgba(255,60,60,0.8)}}
+#m-micro-wave{width:100%;height:50px;border:1px solid var(--border);border-radius:8px;background:rgba(0,4,12,0.9);margin-bottom:8px;}
+#m-micro-texto{font-size:0.72em;color:var(--green);text-align:center;min-height:30px;padding:4px;}
+.m-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
+.m-info-card{background:rgba(0,10,24,0.8);border:1px solid var(--border);border-left:2px solid var(--cyan);border-radius:6px;padding:6px 8px;}
+.m-info-l{font-size:0.52em;color:rgba(0,200,255,0.45);letter-spacing:2px;text-transform:uppercase;}
+.m-info-v{font-size:0.7em;color:var(--green);font-weight:bold;}
+
+/* ===== RADIO ===== */
+#m-radio-list{max-height:320px;overflow-y:auto;}
+.m-radio-item{background:rgba(0,15,35,0.8);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;cursor:pointer;transition:all 0.2s;}
+.m-radio-item:active{border-color:var(--cyan);background:rgba(0,40,80,0.5);}
+.m-radio-item.playing{border-color:var(--green);background:rgba(0,40,20,0.5);}
+.m-radio-name{font-size:0.8em;color:var(--cyan);font-weight:bold;}
+.m-radio-country{font-size:0.65em;color:rgba(0,200,100,0.7);}
+#m-radio-now{font-size:0.72em;color:var(--green);text-align:center;padding:6px;min-height:24px;}
+
+/* ===== CALCULADORA ===== */
+#m-calc-display{
+  width:100%;background:rgba(0,5,15,0.9);
+  border:1px solid var(--cyan);border-radius:8px;
+  padding:12px;font-size:1.4em;text-align:right;
+  color:var(--cyan);margin-bottom:8px;min-height:50px;
+  word-break:break-all;
+}
+.calc-grid-m{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
+.cbtn{
+  padding:14px 4px;background:rgba(0,15,35,0.8);
+  border:1px solid var(--border);color:var(--cyan);
+  border-radius:8px;cursor:pointer;font-size:0.9em;
+  text-align:center;font-family:inherit;transition:all 0.15s;
+}
+.cbtn:active{background:var(--cyan);color:#000;}
+.cbtn.op{background:rgba(0,25,55,0.8);color:#00aaff;}
+.cbtn.eq{background:var(--cyan);color:#000;font-weight:bold;}
+.cbtn.cl{background:rgba(60,0,0,0.8);color:var(--red);border-color:var(--red);}
+.calc-tabs-m{display:flex;gap:4px;margin-bottom:8px;overflow-x:auto;}
+.ctab{padding:6px 10px;background:rgba(0,15,35,0.8);border:1px solid var(--border);color:var(--cyan);border-radius:6px;cursor:pointer;font-size:0.65em;white-space:nowrap;font-family:inherit;}
+.ctab.active{background:var(--cyan);color:#000;font-weight:bold;}
+.calc-sub{display:none;}
+.calc-sub.active{display:block;}
+
+/* ===== YOUTUBE ===== */
+#m-yt-chat{height:200px;overflow-y:auto;background:rgba(5,0,10,0.8);border:1px solid rgba(255,50,50,0.3);border-radius:8px;padding:8px;margin-bottom:8px;}
+.m-yt-bot{color:#ff6666;font-size:0.75em;margin:3px 0;}
+.m-yt-user{color:#fff;font-size:0.75em;margin:3px 0;}
+.m-yt-result{background:rgba(255,20,20,0.08);border:1px solid rgba(255,50,50,0.25);border-radius:7px;padding:7px;margin:4px 0;cursor:pointer;}
+.m-yt-result:active{border-color:var(--red);}
+.m-yt-thumb{width:100%;border-radius:4px;margin-bottom:3px;}
+.m-yt-title{font-size:0.7em;color:#ff9999;font-weight:bold;}
+.m-yt-channel{font-size:0.6em;color:rgba(255,100,100,0.6);}
+#m-yt-input-row{display:flex;gap:6px;}
+#m-yt-msg{flex:1;padding:9px;background:rgba(5,0,10,0.9);border:1px solid rgba(255,50,50,0.4);border-radius:8px;color:#ff9999;font-size:0.8em;font-family:inherit;}
+#m-yt-msg::placeholder{color:rgba(255,100,100,0.3);}
+#m-btn-yt{padding:9px 14px;background:#cc0000;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;font-size:0.8em;}
+
+/* ===== HOLOGRAMA ===== */
+#m-holo-center{display:flex;flex-direction:column;align-items:center;gap:10px;}
+#m-holoCanvas{border-radius:8px;border:1px solid var(--border);}
+#m-holo-status{font-size:0.65em;color:rgba(0,200,255,0.5);letter-spacing:2px;text-transform:uppercase;text-align:center;}
+#m-holo-label{display:block;width:100%;padding:11px;background:rgba(0,200,255,0.08);border:1px dashed var(--border);border-radius:8px;color:var(--cyan);text-align:center;cursor:pointer;font-size:0.8em;margin-bottom:8px;}
+.holo-btns-m{display:flex;gap:6px;margin-top:8px;}
+
+/* ===== DISPOSITIVOS ===== */
+.m-dev-item{background:rgba(0,15,35,0.8);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:7px;}
+.m-dev-id{font-size:0.72em;color:var(--cyan);word-break:break-all;margin-bottom:4px;}
+.m-dev-status{font-size:0.65em;color:var(--green);margin-bottom:6px;}
+#m-dev-msg{font-size:0.7em;color:var(--green);text-align:center;min-height:18px;padding:4px;}
+
+/* ===== TECLADO REMOTO ===== */
+.kbd-row{display:flex;gap:4px;margin-bottom:4px;justify-content:center;}
+.kbtn{
+  flex:1;max-width:60px;padding:12px 4px;
+  background:rgba(0,15,35,0.8);border:1px solid var(--border);
+  color:var(--cyan);border-radius:7px;cursor:pointer;
+  font-size:0.75em;text-align:center;font-family:inherit;
+  transition:all 0.1s;
+}
+.kbtn:active{background:var(--cyan);color:#000;}
+.kbtn.wide{flex:2;max-width:120px;}
+.kbtn.wider{flex:3;max-width:180px;}
+#kbd-text-area{display:flex;gap:6px;margin-bottom:8px;}
+#kbd-text{flex:1;padding:9px;background:rgba(0,5,15,0.9);border:1px solid var(--border);border-radius:8px;color:var(--cyan);font-size:0.82em;font-family:inherit;}
+</style>
+</head>
+<body>
+
+<div id="bg-rings">
+  <div class="br br1"></div>
+  <div class="br br2"></div>
+  <div class="br br3"></div>
+</div>
+
+<!-- HEADER -->
+<div id="header">
+  <div id="header-title">⚡ FERBOT</div>
+  <div id="page-indicator">
+    <div class="dot active" onclick="goTo(0)"></div>
+    <div class="dot" onclick="goTo(1)"></div>
+    <div class="dot" onclick="goTo(2)"></div>
+    <div class="dot" onclick="goTo(3)"></div>
+    <div class="dot" onclick="goTo(4)"></div>
+    <div class="dot" onclick="goTo(5)"></div>
+    <div class="dot" onclick="goTo(6)"></div>
+  </div>
+</div>
+
+<!-- SWIPE PAGES -->
+<div id="swipe-wrap">
+<div id="pages">
+
+  <!-- PAGE 0: CHAT -->
+  <div class="page" id="p0">
+    <div class="card">
+      <div class="card-title">💬 CHAT FERBOT</div>
+      <div id="m-chat-box">
+        <div class="m-bot">Bienvenido Señor Fer. ¿En qué le puedo ayudar?</div>
+      </div>
+      <div style="margin-bottom:6px;">
+        <select class="m-select" id="m-selectVoz" style="margin-bottom:6px;"></select>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <input class="m-input" id="m-msg" placeholder="Escribí tu mensaje..." style="flex:1;" onkeydown="if(event.key==='Enter')mEnviar(false)"/>
+        <button class="m-btn m-btn-cyan" style="width:auto;padding:10px 14px;" onclick="mEnviar(false)">▶</button>
+        <button class="m-btn m-btn-dark" style="width:auto;padding:10px 12px;" onclick="mEnviar(true)">🎙</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 1: MICRO -->
+  <div class="page" id="p1">
+    <div class="card">
+      <div class="card-title">🎙 MICRÓFONO</div>
+      <button id="m-micro-btn" onclick="toggleMicro()">🎙</button>
+      <canvas id="m-micro-wave"></canvas>
+      <div id="m-micro-texto">Presioná para hablar con FERBOT</div>
+      <select class="m-select" id="m-micro-lang" style="margin:8px 0;">
+        <option value="es-AR">Español AR</option>
+        <option value="es-ES">Español ES</option>
+        <option value="es-MX">Español MX</option>
+        <option value="en-US">English US</option>
+      </select>
+      <div class="m-info-grid">
+        <div class="m-info-card"><div class="m-info-l">Estado</div><div class="m-info-v" id="m-mi-estado">INACTIVO</div></div>
+        <div class="m-info-card"><div class="m-info-l">Confianza</div><div class="m-info-v" id="m-mi-conf">---</div></div>
+        <div class="m-info-card"><div class="m-info-l">Palabras</div><div class="m-info-v" id="m-mi-pal">0</div></div>
+        <div class="m-info-card"><div class="m-info-l">TTS</div><div class="m-info-v" id="m-mi-tts">INACTIVO</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 2: RADIO -->
+  <div class="page" id="p2">
+    <div class="card">
+      <div class="card-title">📻 RADIO</div>
+      <input class="m-input" id="m-radio-search" placeholder="Buscar radio..." style="margin-bottom:6px;"/>
+      <select class="m-select" id="m-radio-country" style="margin-bottom:8px;">
+        <option value="">Todos los países</option>
+        <option value="Argentina">Argentina</option><option value="Mexico">Mexico</option>
+        <option value="Spain">Spain</option><option value="United States">United States</option>
+        <option value="Colombia">Colombia</option><option value="Chile">Chile</option>
+        <option value="Brazil">Brazil</option><option value="United Kingdom">United Kingdom</option>
+        <option value="France">France</option><option value="Germany">Germany</option>
+        <option value="Japan">Japan</option><option value="Italy">Italy</option>
+      </select>
+      <div class="gap6" style="margin-bottom:8px;">
+        <button class="m-btn m-btn-cyan" onclick="mBuscarRadio()">🔍 Buscar</button>
+        <button class="m-btn m-btn-red" onclick="mStopRadio()">⏹ Stop</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:0.7em;">🔊</span>
+        <input type="range" id="m-vol" min="0" max="1" step="0.05" value="0.8" style="flex:1;" oninput="mSetVol(this.value)"/>
+      </div>
+      <div id="m-radio-now">Sin radio seleccionada</div>
+      <div id="m-radio-list" style="margin-top:8px;">Buscá una radio arriba.</div>
+    </div>
+  </div>
+
+  <!-- PAGE 3: CALCULADORA -->
+  <div class="page" id="p3">
+    <div class="card">
+      <div class="card-title">🧮 CALCULADORA</div>
+      <div class="calc-tabs-m">
+        <button class="ctab active" onclick="showCalcTab('basica',this)">Básica</button>
+        <button class="ctab" onclick="showCalcTab('cientifica',this)">Científica</button>
+        <button class="ctab" onclick="showCalcTab('fracciones',this)">Fracciones</button>
+        <button class="ctab" onclick="showCalcTab('porcentaje',this)">Porcentaje</button>
+        <button class="ctab" onclick="showCalcTab('historial',this)">Historial</button>
+      </div>
+
+      <div class="calc-sub active" id="ctab-basica">
+        <div id="m-calc-display">0</div>
+        <div class="calc-grid-m">
+          <button class="cbtn cl" onclick="mBC()">C</button>
+          <button class="cbtn op" onclick="mBA('%')">%</button>
+          <button class="cbtn op" onclick="mBD()">⌫</button>
+          <button class="cbtn op" onclick="mBA('/')">÷</button>
+          <button class="cbtn" onclick="mBA('7')">7</button><button class="cbtn" onclick="mBA('8')">8</button><button class="cbtn" onclick="mBA('9')">9</button>
+          <button class="cbtn op" onclick="mBA('*')">×</button>
+          <button class="cbtn" onclick="mBA('4')">4</button><button class="cbtn" onclick="mBA('5')">5</button><button class="cbtn" onclick="mBA('6')">6</button>
+          <button class="cbtn op" onclick="mBA('-')">−</button>
+          <button class="cbtn" onclick="mBA('1')">1</button><button class="cbtn" onclick="mBA('2')">2</button><button class="cbtn" onclick="mBA('3')">3</button>
+          <button class="cbtn op" onclick="mBA('+')">+</button>
+          <button class="cbtn op" onclick="mBNeg()">+/-</button><button class="cbtn" onclick="mBA('0')">0</button>
+          <button class="cbtn" onclick="mBA('.')">.</button><button class="cbtn eq" onclick="mBEq()">=</button>
+        </div>
+      </div>
+
+      <div class="calc-sub" id="ctab-cientifica">
+        <div id="m-calc-sci">0</div>
+        <div class="calc-grid-m" style="margin-top:6px;">
+          <button class="cbtn cl" onclick="mSC()">C</button><button class="cbtn op" onclick="mSD()">⌫</button>
+          <button class="cbtn op" onclick="mSA('**2')">x²</button><button class="cbtn op" onclick="mSFn('sqrt')">√</button>
+          <button class="cbtn op" onclick="mSFn('sin')">sin</button><button class="cbtn op" onclick="mSFn('cos')">cos</button>
+          <button class="cbtn op" onclick="mSFn('tan')">tan</button><button class="cbtn op" onclick="mSFn('log')">log</button>
+          <button class="cbtn op" onclick="mSFn('ln')">ln</button><button class="cbtn op" onclick="mSA(String(Math.PI))">π</button>
+          <button class="cbtn" onclick="mSA('7')">7</button><button class="cbtn" onclick="mSA('8')">8</button>
+          <button class="cbtn" onclick="mSA('9')">9</button><button class="cbtn op" onclick="mSA('/')">÷</button>
+          <button class="cbtn" onclick="mSA('4')">4</button><button class="cbtn" onclick="mSA('5')">5</button>
+          <button class="cbtn" onclick="mSA('6')">6</button><button class="cbtn op" onclick="mSA('*')">×</button>
+          <button class="cbtn" onclick="mSA('1')">1</button><button class="cbtn" onclick="mSA('2')">2</button>
+          <button class="cbtn" onclick="mSA('3')">3</button><button class="cbtn op" onclick="mSA('-')">−</button>
+          <button class="cbtn" onclick="mSA('0')">0</button><button class="cbtn" onclick="mSA('.')">.</button>
+          <button class="cbtn op" onclick="mSA('+')">+</button><button class="cbtn eq" onclick="mSEq()">=</button>
+        </div>
+      </div>
+
+      <div class="calc-sub" id="ctab-fracciones">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+          <div><div style="font-size:0.65em;color:var(--cyan);margin-bottom:3px;">Numerador 1</div><input class="m-input" id="mfn1" type="number" placeholder="1"/></div>
+          <div><div style="font-size:0.65em;color:var(--cyan);margin-bottom:3px;">Denominador 1</div><input class="m-input" id="mfd1" type="number" placeholder="2"/></div>
+          <div><div style="font-size:0.65em;color:var(--cyan);margin-bottom:3px;">Numerador 2</div><input class="m-input" id="mfn2" type="number" placeholder="3"/></div>
+          <div><div style="font-size:0.65em;color:var(--cyan);margin-bottom:3px;">Denominador 2</div><input class="m-input" id="mfd2" type="number" placeholder="4"/></div>
+        </div>
+        <select class="m-select" id="mfop" style="margin-bottom:8px;">
+          <option value="sum">Suma</option><option value="sub">Resta</option>
+          <option value="mul">Multiplicación</option><option value="div">División</option>
+        </select>
+        <button class="m-btn m-btn-cyan" onclick="mCalcFrac()" style="margin-bottom:8px;">Calcular</button>
+        <div style="background:rgba(0,5,15,0.9);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--green);font-size:0.8em;" id="mfrac-result">Resultado aquí</div>
+      </div>
+
+      <div class="calc-sub" id="ctab-porcentaje">
+        <div style="font-size:0.65em;color:var(--cyan);margin-bottom:3px;">Valor base</div>
+        <input class="m-input" id="mpbase" type="number" placeholder="200" style="margin-bottom:6px;"/>
+        <div style="font-size:0.65em;color:var(--cyan);margin-bottom:3px;">Porcentaje</div>
+        <input class="m-input" id="mppct" type="number" placeholder="15" style="margin-bottom:6px;"/>
+        <select class="m-select" id="mpop" style="margin-bottom:8px;">
+          <option value="of">% de un número</option><option value="add">Agregar %</option>
+          <option value="sub">Quitar %</option><option value="what">Qué % es A de B</option>
+        </select>
+        <button class="m-btn m-btn-cyan" onclick="mCalcPct()" style="margin-bottom:8px;">Calcular</button>
+        <div style="background:rgba(0,5,15,0.9);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--green);font-size:0.8em;" id="mpct-result">Resultado aquí</div>
+      </div>
+
+      <div class="calc-sub" id="ctab-historial">
+        <button class="m-btn m-btn-red" onclick="mClearHist()" style="margin-bottom:8px;">🗑 Limpiar</button>
+        <div id="m-hist-list" style="font-size:0.75em;max-height:250px;overflow-y:auto;">Sin cálculos aún.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 4: YOUTUBE -->
+  <div class="page" id="p4">
+    <div class="card" style="border-color:rgba(255,50,50,0.4);">
+      <div class="card-title" style="color:#ff4444;text-shadow:0 0 10px #ff4444;">▶ YOU TUBE</div>
+      <div id="m-yt-chat">
+        <div class="m-yt-bot">Hola Señor Fer. Buscá cualquier video.</div>
+      </div>
+      <div id="m-yt-input-row" style="margin-bottom:6px;">
+        <input id="m-yt-msg" placeholder="Buscar en YouTube..." onkeydown="if(event.key==='Enter')mYtBuscar()"/>
+        <button id="m-btn-yt" onclick="mYtBuscar()">▶</button>
+      </div>
+      <div style="font-size:0.6em;color:rgba(255,100,100,0.5);text-align:center;letter-spacing:2px;" id="m-yt-estado">EN ESPERA</div>
+    </div>
+  </div>
+
+  <!-- PAGE 5: HOLOGRAMA -->
+  <div class="page" id="p5">
+    <div class="card">
+      <div class="card-title">📡 HOLOGRAMA</div>
+      <div id="m-holo-center">
+        <input type="file" id="m-holo-upload" accept="image/*" style="display:none;" onchange="mCargarHolo(this)"/>
+        <label for="m-holo-upload" id="m-holo-label">📷 SUBIR IMAGEN</label>
+        <canvas id="m-holoCanvas" width="280" height="200"></canvas>
+        <div id="m-holo-status">EN ESPERA</div>
+        <div class="holo-btns-m">
+          <button class="m-btn m-btn-dark" onclick="mSetHoloSpd(0.04)">⏩ RAP</button>
+          <button class="m-btn m-btn-dark" id="m-btnPause" onclick="mTogglePause()">⏸</button>
+          <button class="m-btn m-btn-dark" onclick="mSetHoloSpd(0.008)">⏪ LENTO</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 6: DISPOSITIVOS + TECLADO -->
+  <div class="page" id="p6">
+    <div class="card">
+      <div class="card-title">📱 DISPOSITIVOS</div>
+      <button class="m-btn m-btn-cyan" onclick="mEscanear()" style="margin-bottom:6px;">🔍 Escanear</button>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input class="m-input" id="m-inputIP" placeholder="IP ej: 192.168.1.19" style="flex:1;"/>
+        <button class="m-btn m-btn-dark" style="width:auto;padding:10px 14px;" onclick="mConectarIP()">+</button>
+      </div>
+      <div id="m-dev-msg"></div>
+      <div id="m-dev-list">Sin dispositivos.</div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <div class="card-title">⌨️ TECLADO REMOTO</div>
+      <div id="kbd-text-area">
+        <input id="kbd-text" class="m-input" placeholder="Escribí texto para enviar..."/>
+        <button class="m-btn m-btn-cyan" style="width:auto;padding:10px 12px;" onclick="kSendText()">▶</button>
+      </div>
+      <div class="kbd-row">
+        <button class="kbtn" onclick="kKey('ESC')">ESC</button>
+        <button class="kbtn" onclick="kKey('WIN')">WIN</button>
+        <button class="kbtn wider" onclick="kKey('TAB')">TAB</button>
+        <button class="kbtn wider" onclick="kKey('BACKSPACE')">⌫</button>
+      </div>
+      <div class="kbd-row">
+        <button class="kbtn wider" onclick="kKey('CTRL+C')">CTRL+C</button>
+        <button class="kbtn wider" onclick="kKey('CTRL+V')">CTRL+V</button>
+        <button class="kbtn wider" onclick="kKey('CTRL+Z')">CTRL+Z</button>
+        <button class="kbtn wider" onclick="kKey('CTRL+A')">CTRL+A</button>
+      </div>
+      <div class="kbd-row">
+        <button class="kbtn wider" onclick="kKey('CTRL+S')">CTRL+S</button>
+        <button class="kbtn wider" onclick="kKey('ALT+F4')">ALT+F4</button>
+        <button class="kbtn wider" onclick="kKey('DELETE')">DEL</button>
+        <button class="kbtn wider" onclick="kKey('ENTER')">ENTER</button>
+      </div>
+      <div class="kbd-row">
+        <button class="kbtn wider" onclick="kKey('UP')">▲</button>
+        <button class="kbtn wider" onclick="kKey('DOWN')">▼</button>
+        <button class="kbtn wider" onclick="kKey('LEFT')">◀</button>
+        <button class="kbtn wider" onclick="kKey('RIGHT')">▶</button>
+      </div>
+      <div class="kbd-row">
+        <button class="kbtn wider" onclick="kKey('HOME')">HOME</button>
+        <button class="kbtn wider" onclick="kKey('END')">END</button>
+        <button class="kbtn wider" onclick="kKey('SPACE')">ESPACIO</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /pages -->
+</div><!-- /swipe-wrap -->
+
+<!-- TAB NAV -->
+<div id="tab-nav">
+  <button class="tab-nav-btn active" onclick="goTo(0)"><span class="icon">💬</span>CHAT</button>
+  <button class="tab-nav-btn" onclick="goTo(1)"><span class="icon">🎙</span>MICRO</button>
+  <button class="tab-nav-btn" onclick="goTo(2)"><span class="icon">📻</span>RADIO</button>
+  <button class="tab-nav-btn" onclick="goTo(3)"><span class="icon">🧮</span>CALC</button>
+  <button class="tab-nav-btn" onclick="goTo(4)"><span class="icon">▶</span>YT</button>
+  <button class="tab-nav-btn" onclick="goTo(5)"><span class="icon">📡</span>HOLO</button>
+  <button class="tab-nav-btn" onclick="goTo(6)"><span class="icon">📱</span>DISP</button>
+</div>
+
+<audio id="m-radio-audio"></audio>
+
+<script>
+// ============================================================
+// SWIPE
+// ============================================================
+var curPage = 0;
+var totalPages = 7;
+var startX = 0, startY = 0, isDragging = false;
+
+var swipeWrap = document.getElementById('swipe-wrap');
+var pages = document.getElementById('pages');
+
+swipeWrap.addEventListener('touchstart', function(e){
+  startX = e.touches[0].clientX;
+  startY = e.touches[0].clientY;
+  isDragging = true;
+}, {passive:true});
+
+swipeWrap.addEventListener('touchend', function(e){
+  if (!isDragging) return;
+  var dx = e.changedTouches[0].clientX - startX;
+  var dy = e.changedTouches[0].clientY - startY;
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+    if (dx < 0 && curPage < totalPages-1) goTo(curPage+1);
+    else if (dx > 0 && curPage > 0) goTo(curPage-1);
+  }
+  isDragging = false;
+}, {passive:true});
+
+function goTo(n) {
+  curPage = n;
+  pages.style.transform = 'translateX(-' + (n * 100) + 'vw)';
+  document.querySelectorAll('.dot').forEach(function(d,i){ d.classList.toggle('active', i===n); });
+  document.querySelectorAll('.tab-nav-btn').forEach(function(b,i){ b.classList.toggle('active', i===n); });
+}
+
+// ============================================================
+// VOCES
+// ============================================================
+var voces = [];
+function cargarVoces() {
+  voces = speechSynthesis.getVoices();
+  var s = document.getElementById('m-selectVoz');
+  s.innerHTML = '';
+  voces.forEach(function(v,i){
+    var o = document.createElement('option');
+    o.value = i; o.textContent = v.name+' ('+v.lang+')';
+    s.appendChild(o);
+  });
+}
+if (typeof speechSynthesis !== 'undefined') {
+  speechSynthesis.onvoiceschanged = cargarVoces;
+  cargarVoces();
+}
+function hablar(t) {
+  if (!speechSynthesis) return;
+  speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(t);
+  var i = document.getElementById('m-selectVoz').value;
+  if (voces[i]) u.voice = voces[i];
+  document.getElementById('m-mi-tts').textContent = 'HABLANDO';
+  u.onend = function(){ document.getElementById('m-mi-tts').textContent = 'LISTO'; };
+  speechSynthesis.speak(u);
+}
+
+// ============================================================
+// CHAT
+// ============================================================
+async function mEnviar(voz) {
+  var m = document.getElementById('m-msg').value.trim();
+  if (!m) return;
+  var c = document.getElementById('m-chat-box');
+  c.innerHTML += '<div class="m-user">Tu: '+m+'</div>';
+  document.getElementById('m-msg').value = '';
+  c.innerHTML += '<div class="m-bot" id="mpens">FERBOT: pensando...</div>';
+  c.scrollTop = c.scrollHeight;
+  try {
+    var r = await fetch('/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:m})});
+    var d = await r.json();
+    var p = document.getElementById('mpens');
+    p.textContent = 'FERBOT: '+d.reply;
+    p.removeAttribute('id');
+    c.scrollTop = c.scrollHeight;
+    if (voz) hablar(d.reply);
+  } catch(e) {
+    var p2 = document.getElementById('mpens');
+    if(p2){p2.textContent='FERBOT: Error de conexión.';p2.removeAttribute('id');}
+  }
+}
+
+async function mEnviarConVoz(m) {
+  if (!m) return;
+  var c = document.getElementById('m-chat-box');
+  c.innerHTML += '<div class="m-user">🎙 '+m+'</div>';
+  c.innerHTML += '<div class="m-bot" id="mpens">FERBOT: pensando...</div>';
+  c.scrollTop = c.scrollHeight;
+  goTo(0);
+  try {
+    var r = await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:m})});
+    var d = await r.json();
+    var p = document.getElementById('mpens');
+    p.textContent = 'FERBOT: '+d.reply;
+    p.removeAttribute('id');
+    c.scrollTop = c.scrollHeight;
+    hablar(d.reply);
+  } catch(e) {
+    var p2 = document.getElementById('mpens');
+    if(p2){p2.textContent='FERBOT: Error de conexión.';p2.removeAttribute('id');}
+  }
+}
+
+// ============================================================
+// MICRÓFONO
+// ============================================================
+var microActivo = false, recognition = null;
+var mAudioCtx = null, mAnalyser = null, mStream = null, mAnimId = null;
+var mTotalPal = 0;
+var mWaveCanvas = document.getElementById('m-micro-wave');
+var mWaveCtx = mWaveCanvas.getContext('2d');
+mWaveCanvas.width = window.innerWidth - 60;
+mWaveCanvas.height = 50;
+
+function mDrawIdle(){
+  mWaveCtx.clearRect(0,0,mWaveCanvas.width,mWaveCanvas.height);
+  mWaveCtx.beginPath();
+  mWaveCtx.moveTo(0,25); mWaveCtx.lineTo(mWaveCanvas.width,25);
+  mWaveCtx.strokeStyle='rgba(0,200,255,0.2)'; mWaveCtx.lineWidth=1; mWaveCtx.stroke();
+}
+mDrawIdle();
+
+function mDrawWave(){
+  if (!microActivo||!mAnalyser){mDrawIdle();return;}
+  var w=mWaveCanvas.width,h=mWaveCanvas.height;
+  var buf=new Uint8Array(mAnalyser.fftSize);
+  mAnalyser.getByteTimeDomainData(buf);
+  mWaveCtx.clearRect(0,0,w,h);
+  mWaveCtx.fillStyle='rgba(0,4,12,0.4)'; mWaveCtx.fillRect(0,0,w,h);
+  mWaveCtx.lineWidth=1.5; mWaveCtx.strokeStyle='#ff4444';
+  mWaveCtx.shadowColor='#ff4444'; mWaveCtx.shadowBlur=6;
+  mWaveCtx.beginPath();
+  var sw=w/buf.length, x=0;
+  for(var i=0;i<buf.length;i++){
+    var v=buf[i]/128.0, y=(v*h)/2;
+    if(i===0) mWaveCtx.moveTo(x,y); else mWaveCtx.lineTo(x,y);
+    x+=sw;
+  }
+  mWaveCtx.lineTo(w,h/2); mWaveCtx.stroke(); mWaveCtx.shadowBlur=0;
+  mAnimId=requestAnimationFrame(mDrawWave);
+}
+
+async function mIniciarAudio(){
+  try {
+    mStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    mAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    var src=mAudioCtx.createMediaStreamSource(mStream);
+    mAnalyser=mAudioCtx.createAnalyser(); mAnalyser.fftSize=256;
+    src.connect(mAnalyser); mDrawWave();
+  } catch(e){ console.error(e); }
+}
+
+function mDetenerAudio(){
+  if(mAnimId){cancelAnimationFrame(mAnimId);mAnimId=null;}
+  if(mStream){mStream.getTracks().forEach(function(t){t.stop()});mStream=null;}
+  if(mAudioCtx){mAudioCtx.close();mAudioCtx=null;}
+  mAnalyser=null; mDrawIdle();
+}
+
+function mIniciarRec(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ document.getElementById('m-micro-texto').textContent='No soportado. Usá Chrome.'; return false; }
+  recognition=new SR();
+  recognition.lang=document.getElementById('m-micro-lang').value;
+  recognition.continuous=true; recognition.interimResults=true;
+  recognition.onresult=function(e){
+    var final='',interim='';
+    for(var i=e.resultIndex;i<e.results.length;i++){
+      var t=e.results[i][0].transcript;
+      if(e.results[i].isFinal){
+        final+=t;
+        document.getElementById('m-mi-conf').textContent=(e.results[i][0].confidence*100).toFixed(0)+'%';
+        mTotalPal+=t.trim().split(/\s+/).length;
+        document.getElementById('m-mi-pal').textContent=mTotalPal;
+        mEnviarConVoz(t.trim());
+      } else interim+=t;
+    }
+    document.getElementById('m-micro-texto').textContent=final||interim||'...';
+  };
+  recognition.onerror=function(e){ if(e.error!=='no-speech') console.error(e.error); };
+  recognition.onend=function(){ if(microActivo){try{recognition.start();}catch(e){}} };
+  recognition.start(); return true;
+}
+
+function toggleMicro(){
+  var btn=document.getElementById('m-micro-btn');
+  if(!microActivo){
+    if(!mIniciarRec()) return;
+    microActivo=true;
+    mIniciarAudio();
+    btn.classList.add('on'); btn.textContent='🔴';
+    document.getElementById('m-mi-estado').textContent='ACTIVO';
+    document.getElementById('m-micro-texto').textContent='Escuchando...';
+  } else {
+    microActivo=false;
+    if(recognition){try{recognition.stop();}catch(e){} recognition=null;}
+    mDetenerAudio();
+    btn.classList.remove('on'); btn.textContent='🎙';
+    document.getElementById('m-mi-estado').textContent='INACTIVO';
+    document.getElementById('m-micro-texto').textContent='Presioná para hablar con FERBOT';
+  }
+}
+
+// ============================================================
+// RADIO
+// ============================================================
+var mRadioAudio=document.getElementById('m-radio-audio');
+mRadioAudio.volume=0.8;
+var mRadioActual=null;
+
+async function mBuscarRadio(){
+  var q=document.getElementById('m-radio-search').value.trim();
+  var pais=document.getElementById('m-radio-country').value;
+  document.getElementById('m-radio-list').innerHTML='Buscando...';
+  try{
+    var url='/radio-search?';
+    if(q) url+='name='+encodeURIComponent(q)+'&';
+    if(pais) url+='country='+encodeURIComponent(pais);
+    var r=await fetch(url);
+    var radios=await r.json();
+    if(!radios||radios.length===0){document.getElementById('m-radio-list').innerHTML='<div style="font-size:0.75em;color:#666;">Sin resultados.</div>';return;}
+    document.getElementById('m-radio-list').innerHTML=radios.map(function(radio,i){
+      return '<div class="m-radio-item" id="mri'+i+'" onclick="mPlayRadio(\''+encodeURIComponent(radio.url_resolved)+'\',\''+encodeURIComponent(radio.name)+'\',\''+encodeURIComponent(radio.country)+'\',\'mri'+i+'\')">'+
+        '<div class="m-radio-name">'+radio.name+'</div>'+
+        '<div class="m-radio-country">🌍 '+(radio.country||'Desconocido')+'</div></div>';
+    }).join('');
+  }catch(e){document.getElementById('m-radio-list').innerHTML='<div style="color:#ff4444;font-size:0.75em;">Error al buscar.</div>';}
+}
+
+function mPlayRadio(urlEnc,nameEnc,countryEnc,itemId){
+  var url=decodeURIComponent(urlEnc),name=decodeURIComponent(nameEnc),country=decodeURIComponent(countryEnc);
+  document.querySelectorAll('.m-radio-item').forEach(function(el){el.classList.remove('playing');});
+  var item=document.getElementById(itemId); if(item)item.classList.add('playing');
+  mRadioActual=itemId; mRadioAudio.src=url; mRadioAudio.play();
+  document.getElementById('m-radio-now').textContent='▶ '+name+' — '+country;
+}
+function mStopRadio(){
+  mRadioAudio.pause();mRadioAudio.src='';
+  document.getElementById('m-radio-now').textContent='Radio detenida';
+  document.querySelectorAll('.m-radio-item').forEach(function(el){el.classList.remove('playing');});
+  mRadioActual=null;
+}
+function mSetVol(v){mRadioAudio.volume=parseFloat(v);}
+
+// ============================================================
+// CALCULADORA
+// ============================================================
+var mHist=[];
+function mAddH(e,r){mHist.unshift(e+' = '+r);if(mHist.length>50)mHist.pop();document.getElementById('m-hist-list').innerHTML=mHist.map(function(h){return'<div style="padding:4px;border-bottom:1px solid rgba(0,200,255,0.1);color:#00aa66;">'+h+'</div>';}).join('');}
+function mClearHist(){mHist=[];document.getElementById('m-hist-list').innerHTML='Sin cálculos aún.';}
+
+var mBExpr='';
+function mBU(){document.getElementById('m-calc-display').textContent=mBExpr||'0';}
+function mBA(n){mBExpr+=n;mBU();} function mBC(){mBExpr='';mBU();} function mBD(){mBExpr=mBExpr.slice(0,-1);mBU();}
+function mBNeg(){if(mBExpr&&!isNaN(mBExpr))mBExpr=String(-parseFloat(mBExpr));mBU();}
+function mBEq(){try{var r=eval(mBExpr);mAddH(mBExpr,r);mBExpr=String(r);mBU();}catch(e){document.getElementById('m-calc-display').textContent='Error';mBExpr='';}}
+
+var mSExpr='';
+function mSU(){document.getElementById('m-calc-sci').textContent=mSExpr||'0';}
+function mSA(n){mSExpr+=n;mSU();} function mSC(){mSExpr='';mSU();} function mSD(){mSExpr=mSExpr.slice(0,-1);mSU();}
+function mSFn(f){try{var v=parseFloat(mSExpr),r;if(f=='sqrt')r=Math.sqrt(v);else if(f=='sin')r=Math.sin(v*Math.PI/180);else if(f=='cos')r=Math.cos(v*Math.PI/180);else if(f=='tan')r=Math.tan(v*Math.PI/180);else if(f=='log')r=Math.log10(v);else if(f=='ln')r=Math.log(v);mAddH(f+'('+v+')',r);mSExpr=String(r);mSU();}catch(e){document.getElementById('m-calc-sci').textContent='Error';mSExpr='';}}
+function mSEq(){try{var r=eval(mSExpr);mAddH(mSExpr,r);mSExpr=String(r);mSU();}catch(e){document.getElementById('m-calc-sci').textContent='Error';mSExpr='';}}
+
+function mMcd(a,b){return b===0?a:mMcd(b,a%b);}
+function mCalcFrac(){var n1=parseInt(document.getElementById('mfn1').value),d1=parseInt(document.getElementById('mfd1').value),n2=parseInt(document.getElementById('mfn2').value),d2=parseInt(document.getElementById('mfd2').value),op=document.getElementById('mfop').value;if(isNaN(n1)||isNaN(d1)||isNaN(n2)||isNaN(d2)||d1===0||d2===0){document.getElementById('mfrac-result').textContent='Error';return;}var rn,rd;if(op=='sum'){rn=n1*d2+n2*d1;rd=d1*d2;}else if(op=='sub'){rn=n1*d2-n2*d1;rd=d1*d2;}else if(op=='mul'){rn=n1*n2;rd=d1*d2;}else{rn=n1*d2;rd=d1*n2;}var m=mMcd(Math.abs(rn),Math.abs(rd));rn=rn/m;rd=rd/m;mAddH(n1+'/'+d1+' '+op+' '+n2+'/'+d2,rn+'/'+rd);document.getElementById('mfrac-result').textContent='Resultado: '+rn+'/'+rd+' = '+(rn/rd).toFixed(6);}
+function mCalcPct(){var b=parseFloat(document.getElementById('mpbase').value),p=parseFloat(document.getElementById('mppct').value),op=document.getElementById('mpop').value;if(isNaN(b)||isNaN(p)){document.getElementById('mpct-result').textContent='Error';return;}var r;if(op=='of')r=(b*p/100).toFixed(4);else if(op=='add')r=(b+b*p/100).toFixed(4);else if(op=='sub')r=(b-b*p/100).toFixed(4);else r=((b/p)*100).toFixed(4)+'%';mAddH('pct:'+b+' '+op+' '+p+'%',r);document.getElementById('mpct-result').textContent='Resultado: '+r;}
+
+function showCalcTab(n,el){
+  document.querySelectorAll('.calc-sub').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.ctab').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('ctab-'+n).classList.add('active');
+  el.classList.add('active');
+}
+
+// ============================================================
+// YOUTUBE
+// ============================================================
+async function mYtBuscar(){
+  var q=document.getElementById('m-yt-msg').value.trim();
+  if(!q)return;
+  var chat=document.getElementById('m-yt-chat');
+  document.getElementById('m-yt-estado').textContent='BUSCANDO...';
+  chat.innerHTML+='<div class="m-yt-user">🔍 '+q+'</div>';
+  document.getElementById('m-yt-msg').value='';
+  chat.scrollTop=chat.scrollHeight;
+  try{
+    var r=await fetch('https://yt.lemnoslife.com/noKey/search?part=snippet&q='+encodeURIComponent(q)+'&maxResults=5&type=video');
+    var data=await r.json();
+    if(!data.items||data.items.length===0){chat.innerHTML+='<div class="m-yt-bot">Sin resultados.</div>';return;}
+    chat.innerHTML+='<div class="m-yt-bot">'+data.items.length+' videos encontrados:</div>';
+    data.items.forEach(function(item){
+      var vid=item.id.videoId,title=item.snippet.title,channel=item.snippet.channelTitle,thumb=item.snippet.thumbnails.medium.url;
+      chat.innerHTML+='<div class="m-yt-result" onclick="window.open(\'https://www.youtube.com/watch?v='+vid+'\',\'_blank\')">'+
+        '<img class="m-yt-thumb" src="'+thumb+'"/>'+
+        '<div class="m-yt-title">'+title+'</div>'+
+        '<div class="m-yt-channel">📺 '+channel+'</div></div>';
+    });
+    document.getElementById('m-yt-estado').textContent='LISTO';
+  }catch(e){chat.innerHTML+='<div class="m-yt-bot">Error al buscar.</div>';document.getElementById('m-yt-estado').textContent='ERROR';}
+  chat.scrollTop=chat.scrollHeight;
+}
+
+// ============================================================
+// HOLOGRAMA
+// ============================================================
+var mHCanvas=document.getElementById('m-holoCanvas');
+var mHCtx=mHCanvas.getContext('2d');
+var mHW=280,mHH=200,mHAngle=0,mHSpd=0.018,mHPaused=false,mHImg=null,mHAnimId=null;
+var mOffC=document.createElement('canvas');mOffC.width=mHW;mOffC.height=mHH;
+var mOffX=mOffC.getContext('2d');
+
+(function(){mHCtx.fillStyle='rgba(0,4,12,1)';mHCtx.fillRect(0,0,mHW,mHH);mHCtx.strokeStyle='rgba(0,200,255,0.15)';mHCtx.lineWidth=1;mHCtx.strokeRect(1,1,mHW-2,mHH-2);mHCtx.fillStyle='rgba(0,200,255,0.18)';mHCtx.font='10px monospace';mHCtx.textAlign='center';mHCtx.fillText('SUBÍ UNA IMAGEN',mHW/2,mHH/2);})();
+
+function mCargarHolo(input){var file=input.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(e){document.getElementById('m-holo-status').textContent='ACTIVO';var img=new Image();img.onload=function(){mHImg=img;if(mHAnimId)cancelAnimationFrame(mHAnimId);mLoopHolo();};img.src=e.target.result;};reader.readAsDataURL(file);}
+
+function mRenderHolo(angle){mOffX.clearRect(0,0,mHW,mHH);var scx=Math.abs(Math.cos(angle));if(scx<0.04)scx=0.04;var dw=mHW*scx,dx=(mHW-dw)/2;mOffX.drawImage(mHImg,dx,0,dw,mHH);var id=mOffX.getImageData(0,0,mHW,mHH);var d=id.data;var edge=new Float32Array(mHW*mHH);var maxE=0;for(var y=1;y<mHH-1;y++){for(var x=1;x<mHW-1;x++){function g(px,py){var i=(py*mHW+px)*4;return d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114;}var gx=(g(x+1,y-1)+2*g(x+1,y)+g(x+1,y+1))-(g(x-1,y-1)+2*g(x-1,y)+g(x-1,y+1));var gy=(g(x-1,y+1)+2*g(x,y+1)+g(x+1,y+1))-(g(x-1,y-1)+2*g(x,y-1)+g(x+1,y-1));var mag=Math.sqrt(gx*gx+gy*gy);edge[y*mHW+x]=mag;if(mag>maxE)maxE=mag;}}mHCtx.fillStyle='rgba(0,3,10,0.96)';mHCtx.fillRect(0,0,mHW,mHH);var out=mHCtx.createImageData(mHW,mHH);var od=out.data;var threshold=maxE*0.18;for(var i=0;i<mHW*mHH;i++){var e=edge[i];if(e>threshold){var norm=Math.min(1,(e-threshold)/(maxE-threshold));var bright=Math.round(norm*255);var i4=i*4;od[i4]=0;od[i4+1]=Math.round(bright*0.8);od[i4+2]=bright;od[i4+3]=Math.min(255,100+Math.round(norm*155));}}mHCtx.putImageData(out,0,0);mHCtx.strokeStyle='rgba(0,200,255,0.3)';mHCtx.lineWidth=1;mHCtx.strokeRect(0.5,0.5,mHW-1,mHH-1);}
+function mLoopHolo(){if(!mHPaused&&mHImg){mHAngle+=mHSpd;if(mHAngle>Math.PI*2)mHAngle-=Math.PI*2;mRenderHolo(mHAngle);}mHAnimId=requestAnimationFrame(mLoopHolo);}
+function mSetHoloSpd(s){mHSpd=s;mHPaused=false;document.getElementById('m-btnPause').textContent='⏸';}
+function mTogglePause(){mHPaused=!mHPaused;document.getElementById('m-btnPause').textContent=mHPaused?'▶':'⏸';}
+
+// ============================================================
+// DISPOSITIVOS
+// ============================================================
+function mRenderDevices(devices){var list=document.getElementById('m-dev-list');if(!devices||devices.length===0){list.innerHTML='<div style="font-size:0.75em;color:#666;">Sin dispositivos.</div>';return;}list.innerHTML=devices.map(function(d){return'<div class="m-dev-item"><div class="m-dev-id">'+d.id+'</div><div class="m-dev-status">'+d.status+'</div>'+(d.status==='conectado'?'<button class="m-btn m-btn-dark" onclick="mMirror(\''+d.id+'\')">▶ Ver pantalla</button>':'<div style="font-size:0.65em;color:#ff4444;">Aceptá permiso en el celu</div>')+'</div>';}).join('');}
+async function mEscanear(){document.getElementById('m-dev-msg').textContent='Escaneando...';var r=await fetch('/devices');var d=await r.json();mRenderDevices(d.devices);document.getElementById('m-dev-msg').textContent=d.devices.length+' dispositivo(s)';}
+async function mConectarIP(){var ip=document.getElementById('m-inputIP').value.trim();if(!ip)return;document.getElementById('m-dev-msg').textContent='Conectando...';var r=await fetch('/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip:ip})});var d=await r.json();document.getElementById('m-dev-msg').textContent=d.msg;if(d.ok)mEscanear();}
+async function mMirror(id){var r=await fetch('/mirror',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})});var d=await r.json();document.getElementById('m-dev-msg').textContent=d.msg;}
+
+// ============================================================
+// TECLADO REMOTO
+// ============================================================
+async function kKey(tecla){await fetch('/tecla',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tecla:tecla})});}
+async function kSendText(){var t=document.getElementById('kbd-text').value;if(!t)return;await fetch('/tecla',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:t})});document.getElementById('kbd-text').value='';}
+
+// Init
+mEscanear();
+</script>
+</body>
+</html>
