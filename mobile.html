@@ -843,6 +843,10 @@ async function kSendText(){var t=document.getElementById('kbd-text').value;if(!t
 
 // Init
 mEscanear();
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js');
+}
 </script>
 </body>
 </html>
